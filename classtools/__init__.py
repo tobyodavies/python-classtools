@@ -62,11 +62,11 @@ class innerclass(object):
     A descriptor for instance-based inner classes
     
     >>> class foo(object):
-    ...     @innerclass
+    ...     @innerclass('parentinstance')
     ...     class bar(object):
     ...         "This is a Bar"
-    ...         def __init__(self, outer):
-    ...             self.parentinstance = outer
+    ...         def __init__(self):
+    ...             pass
     ...
     >>> f = foo()
     >>> b = f.bar()
