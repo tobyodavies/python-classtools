@@ -87,11 +87,93 @@ class innerclass(object):
     False
     """
     
-    def __init__(self, klass):
+    def __init__(self,propname='parent'):
+        self.propname=propname
+        self.klasscache = weakref.WeakKeyDictionary()
+        self.nullklass = None
+
+    def __call__(self, klass):
         self.klass = klass
 
+        @wraps(klass)
+        class baseklass(klass):
+            __doc__ = klass.__doc__
+            def __new__(*args,**kwargs):
+                retval = klass.__new__(*args, **kwargs)
+                setattr(retval, propname, None)
+                return retval
+        
+        self.baseklass = baseklass
+        return self
+
+    def _mkklass(self, instance):
+        klass = self.klass
+        propname = self.propname
+        
+        @wraps(klass)
+        class wrapped(self.baseklass):
+            __doc__ = klass.__doc__
+            def __new__(*args,**kwargs):
+                retval = klass.__new__(*args, **kwargs)
+                setattr(retval, propname, instance)
+                return retval
+        return wrapped
+
     def __get__(self, instance, owner):
-        return functools.partial(self.klass, outer=instance)
+        if instance is None:
+            return self.baseklass
+        
+        if instance not in self.klasscache:
+            self.klasscache[instance] = self._mkklass(instance)
+
+        return self.klasscache[instance]
+
+
+def singleton(klass):
+    """
+    Prevents the creation of multiple instances of a class
+
+    >>> @singleton
+    ... class foo(object):
+    ...     def __init__(self, x):
+    ...         self.x=x
+    >>> f = foo(1)
+    >>> f == foo.getinstance(1)
+    True
+    >>> f2 = foo.getinstance(2)
+    >>> f is f2
+    True
+    >>> f2.x
+    1
+    
+    """
+    
+    @wraps(klass)
+    class wrapper(klass):
+        __doc__ = klass.__doc__
+        
+        instance = None
+
+        def __new__(cls, *args, **kwargs):
+            if wrapper.instance is None:
+                # avoid deprication warnings!
+                if klass.__new__ is object.__new__:
+                    wrapper.instance = klass.__new__(cls)
+                else:
+                    wrapper.instance = klass.__new__(cls, *args, **kwargs)
+            else:
+                raise RuntimeError()
+            return wrapper.instance
+
+        @staticmethod
+        def getinstance(*args, **kwargs):
+            if wrapper.instance is None:
+                return wrapper(*args, **kwargs)
+            return wrapper.instance
+
+    return wrapper
+
+
 
 
 
