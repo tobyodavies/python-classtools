@@ -32,6 +32,30 @@ but there are some things that ought to be easier to do.
 """
 
 import functools
+import weakref
+
+
+def wraps(wrapped, check_docstring=True):
+    """
+    decorator-decorator for wrapper classes
+
+    >>> class foo(object):
+    ...     "Docstring"
+    >>> @wraps(foo)
+    ... class bar(object):
+    ...     __doc__=foo.__doc__
+    >>> bar.__name__ == 'foo'
+    True
+    >>> bar.__module__ == foo.__module__
+    True
+    """
+    def decorator(wrapper):
+        wrapper.__name__ = wrapped.__name__
+        wrapper.__module__ = wrapped.__module__
+        if check_docstring:
+            assert wrapper.__doc__ == wrapped.__doc__, "You must include __doc__ = wrapped.__doc__ in your class definition (this is not writable)"
+        return wrapper
+    return decorator
 
 class innerclass(object):
     """
