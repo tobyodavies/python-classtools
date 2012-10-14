@@ -2,7 +2,7 @@
 
 from distutils.core import setup, Command
 
-class TestCommand(Command):
+class RunTestsCommand(Command):
     """
     Run tests with `setup.py test`
     """
@@ -13,7 +13,8 @@ class TestCommand(Command):
         pass
     def run(self):
         import classtools.tests
-        classtools.tests.runtests()
+        if not classtools.tests.runtests():
+            raise SystemExit(1)
 
 setup(name='classtools',
             version='0.1',
@@ -23,5 +24,5 @@ setup(name='classtools',
             url='https://github.com/tobyodavies/python-classtools/',
             packages=['classtools', 'classtools.tests'],
             requires=['pytest (>=2.0)'],
-            cmdclass={'test': TestCommand}
+            cmdclass={'test': RunTestsCommand}
            )
