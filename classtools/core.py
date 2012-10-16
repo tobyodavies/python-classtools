@@ -24,6 +24,63 @@ def wraps(wrapped, check_docstring=True):
     return decorator
 
 
+def fdecorator(wrappeddecorator):
+    """
+    >>> @fdecorator
+    ... def printsomethingfirst(func, string):
+    ...     def wrappedfunc(*args, **kwargs):
+    ...         print string
+    ...         func(*args, **kwargs)
+    ...     return wrappedfunc
+    >>> @printsomethingfirst('foo')
+    ... def donothing():
+    ...     "Does nothing"
+    ...     pass
+    >>> print donothing
+    <function donothing ...>
+    >>> donothing()
+    foo
+    >>> donothing.__doc__ == "Does nothing"
+    True
+    >>> print donothing.__name__
+    donothing
+    """
+
+    @functools.wraps(wrappeddecorator)
+    def initialwrappeddecorator(*args, **kwargs):
+        def finalwrappeddecorator(wrappedfunc):
+            return functools.wraps(wrappedfunc)(wrappeddecorator(wrappedfunc, *args, **kwargs))
+        return finalwrappeddecorator
+
+    return initialwrappeddecorator
+    
+
+class beforeinit(object):
+    """
+    
+    Run a function during __new__ before __init__
+
+    >>> def printx(obj): print 'x'
+    >>> @beforeinit(printx)
+    ... class foo(object):
+    ...     pass
+    >>> foo()
+    x
+    <....foo object ...>
+    """
+
+    def __init__(self, func):
+        self.func=func
+
+    def __call__(self, klass):
+        @wraps(klass)
+        class wrapped(klass):
+            __doc__ = klass.__doc__
+            def __new__(*args,**kwargs):
+                retval = klass.__new__(*args, **kwargs)
+                self.func(retval)
+                return retval                                       
+        return wrapped
 
 class innerclass(object):
     """
